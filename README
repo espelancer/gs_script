@@ -1,0 +1,32 @@
+This folder has everything that is needed for building GS Apps
+
+Prerequires:
+  To build GS Apps, one needs to install node.js, browserify, cordova and node-webkit. Please follow the sequence to install them:
+  1. download node.js from http://nodejs.org and install it
+  2. use the following commands to install browserify and cordova:
+     sudo npm install -g browserify
+     sudo npm install -g cordova
+  3. download node-webkit mac version, and put node-webkit.app in the root of the folder. node-webkit 0.8.6 is tested
+
+What is in the folder:
+  1. gs_compile: compile the source files which may require some node modules or
+files. The output files can be directly run on browsers
+  2. gs_build: build the source file into excutable files on different platforms. Only support browser, android and mac now.
+  3. www_example: example source file
+  4. node_modules: all supported node modules
+
+Requires:
+  1. The entry point in the source file needs to be index.html. 
+  2. All the files requiring node modules need to be .js files
+  3. node modules that are not in node_modules are not supported
+
+Usage:
+  1. build Apps:
+     gs_build source_file_path project_name
+     It will generate gs_app_[platform] in this folder
+  2. compile the code in IDE to test in browser
+     gs_compile source_file_path destination_path
+  3. To run the example, one needs to install the node module required by the .js file.
+     To do it, in the node_module folder, run:
+       npm install markdown
+

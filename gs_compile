@@ -1,0 +1,100 @@
+# ./gs_compile source_path destination_path
+
+#### Arguments check
+
+if [ "$1" == "" ]; then
+  echo "Parameter 1 is the path of the source file"
+  exit
+fi
+
+if [ "$2" == "" ]; then
+  echo "Parameter 2 is the path of the destination"
+  exit
+fi
+
+#### Functions
+
+SAVEIFS=$IFS
+IFS=$(echo -en "\n\b")
+
+# Find the required module or name in a js file
+# Parameter: path of the js file
+# Return: a list of required module or name
+function find_required() {
+  mode="text"
+  while read line
+  do
+    js_code="";
+
+    # filter out comments
+    inline_filtered=`echo $line | sed -e "s/\/\/.*// " | sed -e "s/\/\*.*\*\/// "`
+    if [ $mode == "text" ]; then
+      comment_filtered=`echo $inline_filtered | sed -e "s/\/\*.*// "`
+      if [ "$inline_filtered" != "$comment_filtered" ]; then
+        mode="comment"
+      fi
+      js_code="$comment_filtered"
+    else
+      comment_filtered=`echo $inline_filtered | sed -e "s/.*\*\/// "`
+      if [ "$inline_filtered" != "$comment_filtered" ]; then
+        js_code="$comment_filtered"
+        mode="text"
+      fi
+    fi
+
+    # fetch required
+    if [ "$js_code" != "" ]; then
+      match=`echo "$js_code" | sed "s/.*require[:space]*([^)]*).*//"`
+      if [ "$match" == "" ]; then
+        module_list=`echo "$js_code" | sed "s/[^(]*require[:space]*(//;s/)[^)]*require[:space:]*(/$/g;s/).*//"`
+        for module in ${module_list//"$"/$'\n'}
+        do
+          echo $module | sed -e 's/^"\(.*\)"$/\1/' -e "s/^'\(.*\)'$/\1/"
+        done
+      fi
+    fi
+  done < "$1"
+}
+
+# Copy the directory. If a js file requires anything compile it, Otherwise directly copy
+# Parameter $1: the path of the source folderi
+# Parameter $2: the path of the destination folder
+function cp_dir() {
+  if [ ! -e "$1" ]; then
+    return
+  fi
+  
+  if [ -f "$1" ]; then
+    if [[ "$1" =~ \.js$ ]]; then
+      modules=$(find_required "$1")
+      if [ "$modules" == "" ]; then
+        cp "$1" "$2"
+      else
+        browserify "$1" -o "$2"
+      fi
+    else
+      cp "$1" "$2"
+    fi
+  fi
+
+  if [ ! -d "$1" ]; then
+    return
+  fi
+
+  mkdir "$2"
+  
+  for file in $(ls "$1")
+  do
+    cp_dir "$1/$file" "$2/$file"
+  done
+}
+
+#### Clean existing destination path
+
+rm -rf "$2"
+
+#### Fetch required modules and files
+
+cp_dir $1 $2
+
+IFS=$SAVEIFS

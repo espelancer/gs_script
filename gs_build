@@ -1,0 +1,55 @@
+# ./gs_build source_path app_name
+
+#### Arguments check
+
+if [ "$1" == "" ]; then
+  echo "Parameter 1 is the path of the source file"
+  exit 
+fi
+
+if [ "$2" == "" ]; then
+  echo "Parameter 2 is the name of the App"
+  exit
+fi
+
+#### Clean existing apps
+
+rm -rf ./gs_app_*
+
+#### Compile
+
+./gs_compile "$1" gs_app_browser
+
+#### Cordova
+
+rm -rf ./gs_cordova_temp
+cordova create gs_cordova_temp com.gs.codova "$2"
+cd ./gs_cordova_temp
+cordova platform add android
+rm -rf ./www
+cd ..
+cp -rf "$1" ./gs_cordova_temp/www
+cd ./gs_cordova_temp
+cordova build android
+cd ./platforms/android
+ant release -Dout.dir=ant-build -Dgen.absolute.dir=ant-gen
+cd ../../..
+cp ./gs_cordova_temp/platforms/android/ant-build/CordovaApp-release-unsigned.apk ./gs_app_android.apk
+rm -rf ./gs_cordova_temp
+
+#### node-webkit
+
+cp -rf ./node-webkit.app ./gs_app_mac.app
+cp -rf "$1" ./gs_app_mac.app/Contents/Resources/app.nw
+cat <<- EOF > ./gs_app_mac.app/Contents/Resources/app.nw/package.json
+{
+  "name": "$2",
+  "main": "index.html",
+  "window": {
+    "toolbar": false,
+    "width": 800,
+    "height": 600
+  }
+}
+EOF
+
